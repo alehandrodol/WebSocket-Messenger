@@ -1,6 +1,7 @@
 // создать подключение
-var socket = new WebSocket("ws://localhost:8081");
+var socket = null;
 var nickname;
+const message_div = document.getElementById('subscribe');
 
 // отправить сообщение из формы publish
 document.forms.publish.onsubmit = function() {
@@ -13,6 +14,22 @@ const connect = document.getElementById('connect');
 const disconnect = document.getElementById('disconnect');
 
 connect.addEventListener('click', function(){
+    start();
+});
+
+function start() {
+    socket = new WebSocket("ws://localhost:8081");
+
+    socket.onmessage = function(event) {
+        var incomingMessage = event.data;
+        showMessage(incomingMessage);
+    };
+
+    socket.onopen = authorizate;
+}
+
+function authorizate(){
+    message_div.innerHTML = "";
     nickname = document.getElementById('nickname').value;
     document.getElementById('nickname').style.display = "none";
     document.getElementById('subm').style.display = "inline-block";
@@ -20,20 +37,17 @@ connect.addEventListener('click', function(){
     connect.style.display = "none";
     console.log(nickname);
     socket.send(nickname);
-});
+}
 
 disconnect.addEventListener('click', function(){
-    socket.close(1000, "User disconnected");
+    socket.send("CLOSE");
+    socket = null;
+    //socket.close(1000, "User disconnected");
     connect.style.display = "inline-block"
     disconnect.style.display = 'none';
     document.getElementById('nickname').style.display = "inline-block";
     document.getElementById('subm').style.display = "none";
 });
-
-socket.onmessage = function(event) {
-    var incomingMessage = event.data;
-    showMessage(incomingMessage);
-};
 
 // показать сообщение в div#subscribe
 function showMessage(message) {
@@ -41,3 +55,4 @@ function showMessage(message) {
   messageElem.appendChild(document.createTextNode(message));
   document.getElementById('subscribe').appendChild(messageElem);
 }
+
