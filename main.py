@@ -36,7 +36,14 @@ async def ws(websocket, path):
     current_idx = len(clients) - 1
     print(f"New connection {current_idx}")
     while True:
+
         message = await websocket.recv()
+
+        if message == "CLOSE":
+            print("CLOSING CONNECTION")
+            clients[current_idx].get('ws').close()
+            clients.pop(current_idx)
+            return
 
         query = "INSERT INTO messages (Login, m_Text) VALUES (%s,%s)"
         args = (clients[current_idx].get('nick'), message)
