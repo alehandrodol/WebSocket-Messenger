@@ -9,10 +9,14 @@ document.forms.publish.onsubmit = function() {
   return false;
 };
 
-const connect = document.getElementById('connect');
-const disconnect = document.getElementById('disconnect');
+// const connect = document.getElementById('connect');
+// const disconnect = document.getElementById('disconnect');
 
-connect.addEventListener('click', function(){
+const connect = $('#connect');
+const disconnect = $('#disconnect');
+
+
+connect.on('click', function(){
     start();
 });
 
@@ -28,21 +32,22 @@ function start() {
 }
 
 function authorizate(){
-    nickname = document.getElementById('nickname').value;
-    document.getElementById('nickname').style.display = "none";
-    document.getElementById('subm').style.display = "inline-block";
-    disconnect.style.display = "inline-block";
-    connect.style.display = "none";
+    nickname = $('#nickname').val();
+    $('#nickname').css("display", "none");
+    $('#subm').css("display", "inline-block");
+    $("#message").css("display", "inline-block");
+    disconnect.css("display", "inline-block");
+    connect.css("display", "none");
     console.log(nickname);
     socket.send(nickname);
 }
 
-disconnect.addEventListener('click', function(){
+disconnect.on('click', function(){
     socket.send("CLOSE");
     socket = null;
     //socket.close(1000, "User disconnected");
-    connect.style.display = "inline-block"
-    disconnect.style.display = 'none';
+    connect.css("display", "inline-block");
+    disconnect.css("display", 'none');
     document.getElementById('nickname').style.display = "inline-block";
     document.getElementById('subm').style.display = "none";
 });
