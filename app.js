@@ -32,6 +32,7 @@ function start() {
 }
 
 function authorizate(){
+    $("#subscribe").html("");
     nickname = $('#nickname').val();
     $('#nickname').css("display", "none");
     $('#subm').css("display", "inline-block");
@@ -42,19 +43,23 @@ function authorizate(){
     socket.send(nickname);
 }
 
+$(window).bind("unload" ,function() {
+    socket.send("CLOSE");
+});
+
 disconnect.on('click', function(){
     socket.send("CLOSE");
     socket = null;
     //socket.close(1000, "User disconnected");
     connect.css("display", "inline-block");
     disconnect.css("display", 'none');
-    document.getElementById('nickname').style.display = "inline-block";
-    document.getElementById('subm').style.display = "none";
+    $('#nickname').css("display", "inline-block");
+    $('#subm').css("display", "none");
 });
 
 // показать сообщение в div#subscribe
 function showMessage(message) {
-  var messageElem = document.createElement('div');
-  messageElem.appendChild(document.createTextNode(message));
-  document.getElementById('subscribe').appendChild(messageElem);
+    var messageElem = document.createElement('div');
+    messageElem.appendChild(document.createTextNode(message));
+    document.getElementById('subscribe').appendChild(messageElem);
 }
