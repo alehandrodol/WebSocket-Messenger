@@ -28,23 +28,24 @@ connect()
 
 
 async def ws(websocket, path):
-    flag = True
     dbconfig = read_db_config()
     conn = MySQLConnection(**dbconfig)
     cursor = conn.cursor()
+
     nickname = await websocket.recv()
     clients.append({"ws": websocket, "nick": nickname})
     current_idx = len(clients) - 1
-    print(f"New connection {current_idx}")
-    while True:
 
-        if flag:
-            cursor.execute("SELECT * FROM messages")
-            row = cursor.fetchone()
-            while row is not None:
-                to_send_history = f"{row[2]} | {row[0]}: {row[1]}"
-                await clients[current_idx].get('ws').send(to_send_history)
-                row = cursor.fetchone()
+    print(f"New connection {current_idx}")
+
+    cursor.execute("SELECT * FROM messages")
+    row = cursor.fetchone()
+    while row is not None:
+        to_send_history = f"{row[2]} | {row[0]}: {row[1]}"
+        await clients[current_idx].get('ws').send(to_send_history)
+        row = cursor.fetchone()
+
+    while True:
 
         message = await websocket.recv()
 
@@ -63,9 +64,6 @@ async def ws(websocket, path):
 
         for client in clients:
             await client.get('ws').send(to_send)
-
-        flag = False
-
         await asyncio.sleep(0)
 
 start_server = websockets.serve(ws, "localhost", 8081)
