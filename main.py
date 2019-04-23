@@ -36,12 +36,10 @@ async def ws(websocket, path):
     clients.append({"ws": websocket, "nick": nickname})
     current_idx = len(clients) - 1
 
-    print(f"New connection {current_idx}")
-
     cursor.execute("SELECT * FROM messages")
     row = cursor.fetchone()
     while row is not None:
-        to_send_history = f"{row[2]} | {row[0]}: {row[1]}"
+        to_send_history = f"{row[2]} | {row[0]}: {row[1]} {row[3]}"
         await clients[current_idx].get('ws').send(to_send_history)
         row = cursor.fetchone()
 
@@ -54,17 +52,54 @@ async def ws(websocket, path):
             clients[current_idx].get('ws').close()
             clients.pop(current_idx)
             return
+        if "UPDATE " in message:
+            # Message here is 'UPDATE id "message"'
+            data = message.split(" ")
+            query = f'UPDATE messages SET m_Text="{" ".join(data[2:])}" WHERE id={data[1]};'
+            cursor.execute(query)
+            conn.commit()
+            await reload(cursor)
+            continue
+        if "DELETE " in message:
+            inId = message.split(" ")[1]
+            query = f'DELETE FROM messages WHERE id={inId}'
+            print(query)
+            cursor.execute(query)
+            conn.commit()
+            await reload(cursor)
+            continue
 
-        query = "INSERT INTO messages (Login, m_Text) VALUES (%s,%s)"
+        query = "INSERT INTO messages (Login, m_Text) VALUES (%s,%s);"
         args = (clients[current_idx].get('nick'), message)
         cursor.execute(query, args)
         conn.commit()
 
-        to_send = f"{datetime.datetime.now().strftime('%H:%M:%S')} | {clients[current_idx].get('nick')}: {message}"
+        query = "SELECT ID FROM messages ORDER BY ID DESC LIMIT 1;"
+        cursor.execute(query)
+        id = cursor.fetchone()
 
-        for client in clients:
-            await client.get('ws').send(to_send)
+        await sendToAll(message, current_idx, id)
+
         await asyncio.sleep(0)
+
+async def sendToAll(message, current_idx, id):
+    to_send = f"{datetime.datetime.now().strftime('%H:%M:%S')} | {clients[current_idx].get('nick')}: {message} {id[0]}"
+
+    for client in clients:
+        await client.get('ws').send(to_send)
+
+async def reload(cursor):
+    cursor.execute("SELECT * FROM messages")
+    row = cursor.fetchone()
+
+    for client in clients:
+        await client.get('ws').send("CLEAR")
+
+    while row is not None:
+        to_send_history = f"{row[2]} | {row[0]}: {row[1]} {row[3]}"
+        for client in clients:
+            await client.get('ws').send(to_send_history)
+        row = cursor.fetchone()
 
 start_server = websockets.serve(ws, "localhost", 8081)
 asyncio.get_event_loop().run_until_complete(start_server)

@@ -11,3 +11,19 @@ form{
 #controls{
     margin-left: 10px;
 }
+
+.messageBox{
+    margin-bottom: 5px;
+}
+
+#controls{
+    margin-bottom: 5px;
+}
+
+.delBtn, .editBtn{
+    margin-right: 5px;
+}
+
+#confirmDelete, #denyDelete{
+    margin-right: 5px;
+}
