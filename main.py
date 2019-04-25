@@ -58,7 +58,11 @@ async def ws(websocket, path):
             query = f'UPDATE messages SET m_Text="{" ".join(data[2:])}" WHERE id={data[1]};'
             cursor.execute(query)
             conn.commit()
-            await reload(cursor)
+            query = f'SELECT * FROM messages WHERE id={data[1]}'
+            cursor.execute(query)
+            row = cursor.fetchone()
+            await update(row[1], row[0], row[3])
+            # await reload(cursor)
             continue
         if "DELETE " in message:
             inId = message.split(" ")[1]
@@ -85,6 +89,11 @@ async def ws(websocket, path):
 async def sendToAll(message, current_idx, id):
     to_send = f"{datetime.datetime.now().strftime('%H:%M:%S')} | {clients[current_idx].get('nick')}: {message} {id[0]}"
 
+    for client in clients:
+        await client.get('ws').send(to_send)
+
+async def update(newMessage, nick, id):
+    to_send = f"{datetime.datetime.now().strftime('%H:%M:%S')} | {nick}: {newMessage} {id}"
     for client in clients:
         await client.get('ws').send(to_send)
 

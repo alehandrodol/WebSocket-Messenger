@@ -2,6 +2,7 @@
 var socket = null;
 var nickname;
 var id;
+let idList = [];
 
 // отправить сообщение из формы publish
 document.forms.publish.onsubmit = function() {
@@ -18,7 +19,6 @@ const disconnect = $('#disconnect');
 
 $('#submitUpdate').on("click", function(){
     let message = $('#updateData').val();
-    $("#subscribe").html("");
     socket.send(`UPDATE ${id} ${message}`);
     $('#edit').css("display", "none");
 });
@@ -37,7 +37,11 @@ function start() {
         var incomingMessage = event.data;
         var id = incomingMessage.split(" ")[incomingMessage.split(" ").length - 1];
         var message = incomingMessage.split(` ${id}`)[0];
-        showMessage(message, id);
+        if(idList.includes(id)){
+            $(`#${id}`).html(`<button class="delBtn">Удалить</button><button class="editBtn">Изменить</button>${message}`);
+        } else {
+            showMessage(message, id);
+        }
     };
     socket.onopen = authorizate;
 
@@ -82,6 +86,7 @@ $('#denyDelete').on("click", function () {
 
 // показать сообщение в div#subscribe
 function showMessage(message, inId) {
+    idList.push(inId);
     $('#subscribe').append(`<div class="messageBox" id="${inId}"><button class="delBtn">Удалить</button><button class="editBtn">Изменить</button>${message}</div>`);
     $('.editBtn').on('click', function (event) {
         id = $(event.target).parent().attr('id');
