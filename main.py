@@ -35,6 +35,7 @@ async def ws(websocket, path):
     nickname = await websocket.recv()
     clients.append({"ws": websocket, "nick": nickname})
     current_idx = len(clients) - 1
+    print(f"New Connection {current_idx}")
 
     cursor.execute("SELECT * FROM messages")
     row = cursor.fetchone()
@@ -54,24 +55,31 @@ async def ws(websocket, path):
             return
         if "UPDATE " in message:
             # Message here is 'UPDATE id "message"'
-            data = message.split(" ")
-            query = f'UPDATE messages SET m_Text="{" ".join(data[2:])}" WHERE id={data[1]};'
-            cursor.execute(query)
-            conn.commit()
-            query = f'SELECT * FROM messages WHERE id={data[1]}'
-            cursor.execute(query)
-            row = cursor.fetchone()
-            await update(row[1], row[0], row[3])
-            # await reload(cursor)
-            continue
+            try:
+                data = message.split(" ")
+                query = f'UPDATE messages SET m_Text="{" ".join(data[2:])}" WHERE id={data[1]};'
+                cursor.execute(query)
+                conn.commit()
+                query = f'SELECT * FROM messages WHERE id={data[1]}'
+                cursor.execute(query)
+                row = cursor.fetchone()
+                await update(row[1], row[0], row[3])
+                continue
+            except mysql.connector.errors.ProgrammingError:
+                pass
         if "DELETE " in message:
             inId = message.split(" ")[1]
-            query = f'DELETE FROM messages WHERE id={inId}'
-            print(query)
-            cursor.execute(query)
-            conn.commit()
-            await reload(cursor)
-            continue
+            try:
+                query = f'DELETE FROM messages WHERE id={inId}'
+                print(query)
+                cursor.execute(query)
+                conn.commit()
+                for client in clients:
+                    await client.get('ws').send(f"DELETE {inId}")
+                continue
+            except mysql.connector.errors.ProgrammingError:
+                print("DELETE canceled")
+                continue
 
         query = "INSERT INTO messages (Login, m_Text) VALUES (%s,%s);"
         args = (clients[current_idx].get('nick'), message)
@@ -96,19 +104,6 @@ async def update(newMessage, nick, id):
     to_send = f"{datetime.datetime.now().strftime('%H:%M:%S')} | {nick}: {newMessage} {id}"
     for client in clients:
         await client.get('ws').send(to_send)
-
-async def reload(cursor):
-    cursor.execute("SELECT * FROM messages")
-    row = cursor.fetchone()
-
-    for client in clients:
-        await client.get('ws').send("CLEAR")
-
-    while row is not None:
-        to_send_history = f"{row[2]} | {row[0]}: {row[1]} {row[3]}"
-        for client in clients:
-            await client.get('ws').send(to_send_history)
-        row = cursor.fetchone()
 
 start_server = websockets.serve(ws, "localhost", 8081)
 asyncio.get_event_loop().run_until_complete(start_server)

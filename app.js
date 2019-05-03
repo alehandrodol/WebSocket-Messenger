@@ -30,8 +30,9 @@ function start() {
 
     socket = new WebSocket("ws://localhost:8081");
     socket.onmessage = function(event) {
-        if(event.data == "CLEAR"){
-            $('#subscribe').html("");
+        if(event.data.includes("DELETE ")){
+            let inId = event.data.split(" ")[1];
+            $(`#${inId}`).remove();
             return;
         }
         var incomingMessage = event.data;
@@ -72,6 +73,7 @@ disconnect.on('click', function(){
     $('#nickname').css("display", "inline-block");
     $('#subm').css("display", "none");
     $('#message').css("display", 'none');
+    idList = [];
 });
 
 $('#confirmDelete').on("click", function () {
